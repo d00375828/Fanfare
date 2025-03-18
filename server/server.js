@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 
 const orderRoutes = require('./routes/orderRoutes');
 const itemRoutes = require('./routes/itemRoutes');
@@ -13,6 +14,6 @@ app.use('/item', itemRoutes);
 app.use('/order', orderRoutes);
 
 
-app.listen(8080, () => {
+app.listen(process.env.PORT, () => {
     console.log("server on");
 });
