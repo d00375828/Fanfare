@@ -2,6 +2,8 @@
 
 Fanfare is a stadium delivery service that brings food and merchandise directly to fans' seats, enhancing the stadium experience by eliminating the need to miss any of the action.
 
+### App Demo: https://youtu.be/p7fair9B1kc
+
 ## Project Overview
 
 This project consists of two web applications:
