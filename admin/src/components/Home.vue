@@ -6,7 +6,13 @@
     <!-- Accepted Orders Page -->
     <div v-if="currentPage === 'accepted'" class="page-container">
       <h2 class="page-title">Accepted Orders</h2>
-      
+      <!-- Subheaders -->
+      <div class="subheaders">
+        <div class="subheader">Section</div>
+        <div class="subheader">Seat #</div>
+        <div class="subheader">Item</div>
+      </div>
+
       <!-- Order boxes for accepted orders -->
       <div v-for="order in acceptedOrders" :key="order._id" class="order-box-container">
         <div class="order-box">
@@ -62,24 +68,63 @@
 
     <!-- Inventory Page -->
     <div v-if="currentPage === 'inventory'" class="page-container">
-      <h2 class="page-title">Inventory</h2>
-        
-        <!-- Inventory subheaders -->
-        <div class="subheaders">
-          <div class="subheader">Item</div>
-          <div class="subheader">Quantity</div>
-          <div class="subheader">Description</div>
-        </div>
-        
-        <!-- Inventory item boxes -->
-        <div v-for="item in items" :key="item._id" class="order-box-container">
-          <div class="order-box">
-            <div class="order-detail">{{ item.name }}</div>
-            <div class="order-detail">{{ item.quantity }}</div>
-            <div class="order-detail">{{ item.description }}</div>
+        <!-- Item Modals -->
+        <div v-if="editItemModal" id="item-popup">
+          <h3 class="popup-header">Name</h3>
+          <input v-model="name" class="input-field" />
+          <h3 class="popup-header">Quantity</h3>
+          <input v-model="quantity" class="input-field" />
+          <h3 class="popup-header">Description</h3>
+          <input v-model="description" class="input-field" />
+          <div id="buttons">
+            <button class="modal-buttons" @click="closeAllMenus()">Cancel</button>
+            <button class="modal-buttons" @click="updateItemButton()">Update</button>
           </div>
-      </div>
+        </div>
+
+        <div v-else-if="createItemModal" id="item-popup">
+          <h3 class="popup-header">Name</h3>
+          <input v-model="name" class="input-field" />
+          <h3 class="popup-header">Quantity</h3>
+          <input v-model="quantity" class="input-field" />
+          <h3 class="popup-header">Description</h3>
+          <input v-model="description" class="input-field" />
+          <div id="buttons">
+            <button class="modal-buttons" @click="closeAllMenus()">Cancel</button>
+            <button class="modal-buttons" @click="createNewItem()">Create</button>
+          </div>
+        </div>
+        <div v-else>
+        <h2 class="page-title">Inventory</h2>
+          
+          <!-- Inventory subheaders -->
+          <div class="subheaders">
+            <div class="subheader">Item</div>
+            <div class="subheader">Quantity</div>
+            <div class="subheader">Description</div>
+          </div>
+          
+          <!-- Inventory item boxes -->
+          <div v-for="item in items" :key="item._id" class="order-box-container">
+            <div class="order-box">
+              <div class="order-detail">{{ item.name }}</div>
+              <div class="order-detail">{{ item.quantity }}</div>
+              <div class="order-detail">{{ item.description }}</div>
+              <div class="action-dots" @click="toggleMenu(item)">•••</div>
+            </div>
+
+            <div class="action-menu" v-if="item.showMenu">
+              <div class="menu-item" @click="openEditModal(item)">Edit</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="deteleItemButton(item._id)">Delete</div>
+            </div>
+          </div>
+
+          <button id="new-button" @click="createItemModal = true">New Item</button>
+        </div>
     </div>
+
+
 
     <!-- Navigation Buttons -->
     <div class="navigation-container">
@@ -107,7 +152,7 @@
 
 <script>
 import { getOrders, acceptOrder, completeOrder } from '../hooks/orderApi';
-import { getItems, createItem, updateQuantity, updateItem, deleteItem } from '../hooks/itemApi';
+import { getItems, createItem, updateItem, deleteItem } from '../hooks/itemApi';
 
 export default {
   data() {
@@ -118,6 +163,14 @@ export default {
       acceptedOrders: [],
       newOrders: [],
       items: [],
+
+      editItemModal: false,
+      createItemModal: false,
+
+      id: 0,
+      name: "",
+      quantity: 0,
+      description: "",
     };
   },
   async mounted() {
@@ -130,7 +183,9 @@ export default {
         const orders = await getOrders();
         
         const itemData = await items.json(); 
-        this.items = itemData;
+        this.items = itemData.map((item) => {
+          return { ...item, showMenu: false };
+        });
 
         const orderData = await orders.json(); 
 
@@ -181,21 +236,78 @@ export default {
           console.error("Error updating order", error);
         }
     },
-    toggleMenu(order) {
+    async updateItemButton() {
+      try {
+          const response = await updateItem(this.id, this.name, this.quantity, this.description);
+          if (response.ok) {
+            console.log("Item updated successfully");
+            this.fetchData();
+          } else {
+            console.log("Failed to updated Item");
+          }
+        } catch (error) {
+          console.error("Error updating Item", error);
+        } finally {
+          this.closeAllMenus();
+        }
+    },
+    async deteleItemButton(id) {
+      console.log(id)
+      try {
+          const response = await deleteItem(id);
+          if (response.ok) {
+            console.log("Item deleted successfully");
+            this.fetchData();
+          } else {
+            console.log("Failed to delete item");
+          }
+        } catch (error) {
+          console.error("Error deleting item", error);
+        }
+    },
+    async createNewItem() {
+      try {
+          const response = await createItem(this.name, this.quantity, this.description);
+          if (response.ok) {
+            console.log("Item created successfully");
+            this.fetchData();
+            this.closeAllMenus()
+          } else {
+            console.log("Failed to create item");
+          }
+        } catch (error) {
+          console.error("Error creating item", error);
+        }
+    },
+    openEditModal(item) {
+      this.name = item.name;
+      this.description = item.description;
+      this.quantity = item.quantity;
+      this.id = item._id;
+
+      this.closeAllMenus();
+      this.editItemModal = true;
+    },
+    toggleMenu(row) {
       this.closeAllMenus();
       this.clickOut = true; 
-      order.showMenu = true;
+      row.showMenu = true;
     },
     closeAllMenus() {
+      this.editItemModal = false;
+      this.createItemModal = false;
+
       this.clickOut = false;
 
-      // Directly iterate over the array
       this.acceptedOrders.forEach(order => {
         order.showMenu = false;
       });
 
-      // Close menus for newOrders as well
       this.newOrders.forEach(order => {
+        order.showMenu = false;
+      });
+
+      this.items.forEach(order => {
         order.showMenu = false;
       });
     },
@@ -212,6 +324,7 @@ export default {
   margin: 20px 0 40px;
   text-shadow: 2px 0 #ffde00, -2px 0 #ffde00, 0 2px #ffde00, 0 -2px #ffde00;
   letter-spacing: 2px;
+  margin-top: 1rem;
 }
 
 .page-container {
@@ -286,6 +399,16 @@ export default {
   min-width: 100px;
 }
 
+.input-field {
+  width: 80%;
+  height: 50px;
+  border: 2px solid #2D0F51;
+  border-radius: 5px;
+  padding: 0 15px;
+  font-size: 18px;
+  outline: none;
+}
+
 .item-name {
   flex-grow: 1;
 }
@@ -358,4 +481,53 @@ export default {
   width: 100vw;
   background: rgba(0, 0, 0, 0); /* Optional: for background dimming effect */
 }
+
+#item-popup {
+  position: absolute;
+  width: 90vw;
+  height: 25rem;
+  background-color: #ffffff;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: #000 0.2rem solid;
+  border-radius: 1rem;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-header {
+  align-self: flex-start;
+  margin-left: 5rem;
+  margin-top: 1rem;
+}
+
+#buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+#new-button{
+  background-color: rgb(240, 240, 240);
+  height: 4rem;
+  width: 100%;
+  border-radius: 0.2rem;
+  border: #000 0.1rem solid;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.modal-buttons {
+  background-color: rgb(240, 240, 240);
+  height: 2rem;
+  width: 5rem;
+  border-radius: 0.2rem;
+  border: #d00 0.1rem solid;
+}
+
 </style>

@@ -294,6 +294,5 @@ export default {
   display: flex;
   gap: 1rem;
   justify-content: center;
-
 }
 </style>
