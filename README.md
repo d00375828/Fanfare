@@ -3,6 +3,8 @@
 Fanfare is a stadium delivery service that brings food and merchandise directly to fans' seats, enhancing the stadium experience by eliminating the need to miss any of the action.
 
 ### App Demo: https://youtu.be/p7fair9B1kc
+### Figma Mockups: https://www.figma.com/design/dvcYxIBvOTaJjTIaI4QjDf/Fanfare?node-id=0-1&p=f&t=VOBV33czYhVW0HD2-0
+
 
 ## Project Overview
 
