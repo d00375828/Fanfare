@@ -1,16 +1,16 @@
 <template>
   <v-app>
-    <MyComponent />
+    <Home />
   </v-app>
 </template>
 
 <script>
-import MyComponent from "./components/MyComponent.vue";
+import Home from "./components/Home.vue";
 
 export default {
   name: "App",
   components: {
-    MyComponent
+    Home
   }
 };
 </script>
