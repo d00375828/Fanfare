@@ -1,4 +1,5 @@
 <template>
+  <div v-if="clickOut" id="click-out" @click="closeAllMenus()"></div>
   <div style="background-color: #FFFBF5; min-height: 100vh; font-family: serif;">
     <div class="fanfare-title">Fanfare</div>
     
@@ -6,25 +7,22 @@
     <div v-if="currentPage === 'accepted'" class="page-container">
       <h2 class="page-title">Accepted Orders</h2>
       
-      <div v-for="(orders, section) in acceptedOrders" :key="section" class="section-container">
-        <h3 class="section-title">Section {{ section }}</h3>
+      <!-- Order boxes for accepted orders -->
+      <div v-for="order in acceptedOrders" :key="order._id" class="order-box-container">
+        <div class="order-box">
+          <div class="order-detail">{{ order.section }}</div>
+          <div class="order-detail">{{ order.seat }}</div>
+          <div class="order-detail">{{ order.item }}</div>
+          <div class="action-dots" @click="toggleMenu(order)">•••</div>
+        </div>
         
-        <!-- Order boxes for accepted orders -->
-        <div v-for="order in orders" :key="order.id" class="order-box-container">
-          <div class="order-box">
-            <div class="order-detail seat-number">{{ order.seat }}</div>
-            <div class="order-detail item-name">{{ order.item }}</div>
-            <div class="action-dots" @click="toggleMenu(order)">•••</div>
-          </div>
-          
-          <!-- Dropdown menu -->
-          <div class="action-menu" v-if="order.showMenu">
-            <div class="menu-item" @click="updateStatus(order, 'Delivered')">Delivered</div>
-            <div class="menu-divider"></div>
-            <div class="menu-item" @click="updateStatus(order, 'Could Not Find')">Could Not Find</div>
-            <div class="menu-divider"></div>
-            <div class="menu-item" @click="updateStatus(order, 'Cancel Order')">Cancel Order</div>
-          </div>
+        <!-- Dropdown menu -->
+        <div class="action-menu" v-if="order.showMenu">
+          <div class="menu-item" @click="updateOrderStatus(order._id, 'Delivered')">Delivered</div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" @click="updateOrderStatus(order._id, 'Could not find')">Could Not Find</div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" @click="updateOrderStatus(order._id, 'Admin Canceled after Accepting')">Cancel Order</div>
         </div>
       </div>
     </div>
@@ -42,7 +40,7 @@
         </div>
         
         <!-- Order boxes -->
-        <div v-for="order in newOrders" :key="order.id" class="order-box-container">
+        <div v-for="order in newOrders" :key="order._id" class="order-box-container">
           <div class="order-box">
             <div class="order-detail">{{ order.section }}</div>
             <div class="order-detail">{{ order.seat }}</div>
@@ -52,11 +50,11 @@
           
           <!-- Dropdown menu -->
           <div class="action-menu" v-if="order.showMenu">
-            <div class="menu-item" @click="updateStatus(order, 'Accept')">Accept</div>
+            <div class="menu-item" @click="acceptNewOrder(order._id)">Accept</div>
             <div class="menu-divider"></div>
-            <div class="menu-item" @click="updateStatus(order, 'Do Not Accept')">Do Not Accept</div>
+            <div class="menu-item" @click="updateOrderStatus(order._id, 'Admin Denied')">Do Not Accept</div>
             <div class="menu-divider"></div>
-            <div class="menu-item" @click="updateStatus(order, 'Cancel Order')">Cancel Order</div>
+            <div class="menu-item" @click="updateOrderStatus(order._id, 'Admin Canceled')">Cancel Order</div>
           </div>
         </div>
       </div>
@@ -65,25 +63,21 @@
     <!-- Inventory Page -->
     <div v-if="currentPage === 'inventory'" class="page-container">
       <h2 class="page-title">Inventory</h2>
-      
-      <div v-for="(items, category) in inventory" :key="category" class="section-container">
-        <h3 class="section-title">{{ category }}</h3>
         
         <!-- Inventory subheaders -->
         <div class="subheaders">
           <div class="subheader">Item</div>
-          <div class="subheader">Total Sold</div>
-          <div class="subheader">Remaining</div>
+          <div class="subheader">Quantity</div>
+          <div class="subheader">Description</div>
         </div>
         
         <!-- Inventory item boxes -->
-        <div v-for="item in items" :key="item.name" class="order-box-container">
+        <div v-for="item in items" :key="item._id" class="order-box-container">
           <div class="order-box">
             <div class="order-detail">{{ item.name }}</div>
-            <div class="order-detail">{{ item.sold }}</div>
-            <div class="order-detail">{{ item.remaining }}</div>
+            <div class="order-detail">{{ item.quantity }}</div>
+            <div class="order-detail">{{ item.description }}</div>
           </div>
-        </div>
       </div>
     </div>
 
@@ -112,66 +106,99 @@
 </template>
 
 <script>
+import { getOrders, acceptOrder, completeOrder } from '../hooks/orderApi';
+import { getItems, createItem, updateQuantity, updateItem, deleteItem } from '../hooks/itemApi';
+
 export default {
   data() {
     return {
-      currentPage: 'accepted',
-      acceptedOrders: {
-        A: [
-          { id: 1, seat: "13B", item: "Item 3", status: "", showMenu: false },
-          { id: 2, seat: "12C", item: "Item 2", status: "", showMenu: false },
-          { id: 3, seat: "1A", item: "Item 3", status: "", showMenu: false },
-        ],
-        B: [
-          { id: 4, seat: "6f", item: "Item 2", status: "", showMenu: false },
-        ],
-      },
-      newOrders: [
-        { id: 5, section: "A", seat: "13B", item: "Item 3", status: "", showMenu: false },
-        { id: 6, section: "C", seat: "12C", item: "Item 2", status: "", showMenu: false },
-        { id: 7, section: "B", seat: "1A", item: "Item 3", status: "", showMenu: false },
-      ],
-      inventory: {
-        Food: [
-          { name: "Burger", sold: 30, remaining: 20 },
-          { name: "Fries", sold: 50, remaining: 10 },
-        ],
-        Drink: [
-          { name: "Soda", sold: 40, remaining: 25 },
-          { name: "Beer", sold: 60, remaining: 5 },
-        ],
-        Merch: [
-          { name: "T-Shirt", sold: 20, remaining: 15 },
-        ],
-      },
+      currentPage: 'new',
+      orders: [],
+      clickOut: 'false',
+      acceptedOrders: [],
+      newOrders: [],
+      items: [],
     };
   },
+  async mounted() {
+    await this.fetchData();
+  },
   methods: {
-    updateStatus(order, status) {
-      order.status = status;
-      order.showMenu = false;
-      // Here you would typically handle the status change - this is just a placeholder
-      // to maintain the original functionality
+    async fetchData() {
+      try {
+        const items = await getItems();
+        const orders = await getOrders();
+        
+        const itemData = await items.json(); 
+        this.items = itemData;
+
+        const orderData = await orders.json(); 
+
+        this.newOrders = [];
+        this.acceptedOrders = [];
+
+        orderData.forEach(order => {
+          if (order.isCompleted) {
+            return;
+          }
+          if (order.isAccepted) {
+            this.acceptedOrders.push({...order, showMenu: false});
+          } else {
+            this.newOrders.push({...order, showMenu: false});
+          }
+        });
+
+        console.log('orders fetched:', this.orders);
+      } catch (err) {
+        console.error('Error fetching items:', err);
+      }
+    },
+    async acceptNewOrder(id) {
+      console.log(id)
+      try {
+          const response = await acceptOrder(id);
+          if (response.ok) {
+            console.log("Order accept successfully");
+            this.fetchData();
+          } else {
+            console.log("Failed to accept order");
+          }
+        } catch (error) {
+          console.error("Error accepting order", error);
+        }
+    },
+    async updateOrderStatus(id, status) {
+      console.log(id, status)
+      try {
+          const response = await completeOrder(id, status);
+          if (response.ok) {
+            console.log("Order updated successfully");
+            this.fetchData();
+          } else {
+            console.log("Failed to updated order");
+          }
+        } catch (error) {
+          console.error("Error updating order", error);
+        }
     },
     toggleMenu(order) {
-      // Close all other menus first
       this.closeAllMenus();
-      // Then toggle the selected order's menu
-      order.showMenu = !order.showMenu;
+      this.clickOut = true; 
+      order.showMenu = true;
     },
     closeAllMenus() {
-      // Close menus in acceptedOrders
-      Object.keys(this.acceptedOrders).forEach(section => {
-        this.acceptedOrders[section].forEach(order => {
-          order.showMenu = false;
-        });
+      this.clickOut = false;
+
+      // Directly iterate over the array
+      this.acceptedOrders.forEach(order => {
+        order.showMenu = false;
       });
-      
-      // Close menus in newOrders
+
+      // Close menus for newOrders as well
       this.newOrders.forEach(order => {
         order.showMenu = false;
       });
-    }
+    },
   }
 };
 </script>
@@ -321,5 +348,14 @@ export default {
 .nav-button.active {
   background-color: #f0f0f0;
   font-weight: bold;
+}
+
+#click-out {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background: rgba(0, 0, 0, 0); /* Optional: for background dimming effect */
 }
 </style>

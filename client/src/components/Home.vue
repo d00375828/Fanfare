@@ -47,9 +47,14 @@
         <div v-if="!loading">
           <p class="text-h6">Your order is on the way!</p>
           <p class="text-subtitle1">Estimated delivery time: 30s</p>
-          <v-btn color="purple" class="white--text mt-4" @click="cancelOrderButton">
-            Cancel Order
-          </v-btn>
+          <div id="buttons">
+            <v-btn color="grey" class="white--text mt-4" @click="cancelOrderButton">
+              Cancel Order
+            </v-btn>
+            <v-btn color="purple" class="white--text mt-4" @click="cancelOrderButton">
+              Order Received
+            </v-btn>
+        </div>
         </div>
       </v-card>
     </div>
@@ -283,5 +288,12 @@ export default {
   flex-direction: column; /* Stack items vertically */
   justify-content: center; /* Center items vertically (in the column) */
   align-items: center; /* Center items horizontally */
+}
+
+#buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+
 }
 </style>
